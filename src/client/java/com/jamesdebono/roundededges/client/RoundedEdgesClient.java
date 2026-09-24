@@ -29,7 +29,7 @@ public class RoundedEdgesClient implements ClientModInitializer {
 		ModelLoadingPlugin.register(context -> context.modifyBlockModelAfterBake().register((model, ctx) ->
 				ChamferedModel.isCarvable(ctx.state()) ? new ChamferedModel(model, RoundedEdgesSettings.CARVER) : model));
 
-		KeyMapping distance = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rounded_edges.carve_distance", GLFW.GLFW_KEY_I, CATEGORY));
+		KeyMapping distance = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rounded_edges.carve_distance_toggle", GLFW.GLFW_KEY_I, CATEGORY));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			CarveDistance.tick(client);
