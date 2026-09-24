@@ -51,8 +51,12 @@ public final class CarvableBlocks {
 			"mangrove_leaves", "cherry_leaves", "azalea_leaves", "flowering_azalea_leaves", "pale_oak_leaves",
 	};
 
-	/** Tree trunks (and stripped ones): always cut the 4 edges along their axis, like the round sides of a real log. */
+	/**
+	 * Tree trunks (and stripped ones), and bone blocks: always cut the 4 edges along their axis, like the round sides
+	 * of a real log.
+	 */
 	private static final String[] LOGS = {
+			"bone_block",
 			"oak_log", "spruce_log", "birch_log", "jungle_log", "acacia_log", "dark_oak_log", "mangrove_log",
 			"cherry_log", "pale_oak_log", "crimson_stem", "warped_stem",
 			"stripped_oak_log", "stripped_spruce_log", "stripped_birch_log", "stripped_jungle_log",
