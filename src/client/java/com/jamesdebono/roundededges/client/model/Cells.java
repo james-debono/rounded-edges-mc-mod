@@ -3,6 +3,7 @@ package com.jamesdebono.roundededges.client.model;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.LightCoordsUtil;
+import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 import com.jamesdebono.roundededges.carve.CarveKey;
@@ -63,7 +64,24 @@ final class Cells implements CarveKey.Cells {
 		if (state.isAir()) {
 			return CarveKey.EMPTY;
 		}
-		return ChamferedModel.isCarvable(state) ? CarveKey.CARVABLE : CarveKey.SOLID;
+		if (ChamferedModel.isCarvable(state)) {
+			return CarveKey.CARVABLE;
+		}
+		if (state.isSolidRender()) {
+			return CarveKey.SOLID;
+		}
+		return isOpen(state, dx, dy, dz) ? CarveKey.EMPTY : CarveKey.SOLID;
+	}
+
+	/**
+	 * Decorations you can walk through (grass, flowers, torches, cobwebs...) count as empty, so edges still round
+	 * under them. They don't hide faces against our block, so the cut can't open a hole. Fluids, snow layers and
+	 * anything with collision (leaves, glass, slabs...) stay solid.
+	 */
+	private boolean isOpen(BlockState state, int dx, int dy, int dz) {
+		return state.getFluidState().isEmpty()
+				&& !(state.getBlock() instanceof SnowLayerBlock)
+				&& state.getCollisionShape(level, pos(dx, dy, dz)).isEmpty();
 	}
 
 	int light(int dx, int dy, int dz) {

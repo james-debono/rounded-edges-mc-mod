@@ -3,7 +3,7 @@
 	"id": "rounded_edges",
 	"version": "${version}",
 	"name": "Rounded Edges",
-	"description": "Carves a stepped 45-degree chamfer into the exposed edges of terrain blocks. Prototype: stone only.",
+	"description": "Carves a stepped 45-degree chamfer into the exposed edges of natural terrain blocks.",
 	"authors": [
 		"James Debono"
 	],

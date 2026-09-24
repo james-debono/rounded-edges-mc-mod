@@ -20,7 +20,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 import net.fabricmc.fabric.api.client.model.loading.v1.wrapper.WrapperBlockStateModel;
@@ -33,6 +32,7 @@ import com.jamesdebono.roundededges.carve.CarvedShape;
 import com.jamesdebono.roundededges.carve.Carver;
 import com.jamesdebono.roundededges.carve.Face;
 import com.jamesdebono.roundededges.carve.Rect;
+import com.jamesdebono.roundededges.client.CarvableBlocks;
 import com.jamesdebono.roundededges.client.RoundedEdgesSettings;
 import com.jamesdebono.roundededges.client.debug.CarveStats;
 
@@ -57,9 +57,9 @@ public class ChamferedModel extends WrapperBlockStateModel {
 		this.carver = carver;
 	}
 
-	/** Blocks that get carved. Prototype: stone only. */
+	/** Blocks that get carved; see {@link CarvableBlocks}. */
 	public static boolean isCarvable(BlockState state) {
-		return state.getBlock() == Blocks.STONE;
+		return CarvableBlocks.contains(state);
 	}
 
 	@Override
@@ -95,6 +95,7 @@ public class ChamferedModel extends WrapperBlockStateModel {
 		// the block. Textures follow the original face, including the random variant picked for this position.
 		List<BlockStateModelPart> parts = partsAt(wrapped, state, pos);
 		CornerLight light = CornerLight.of(cells, Minecraft.getInstance().options.ambientOcclusion().get());
+		boolean emissive = state.emissiveRendering(); // e.g. magma renders full-bright
 		for (Face face : Face.VALUES) {
 			if ((carvedFaces & face.bit()) == 0) {
 				continue;
@@ -108,7 +109,7 @@ public class ChamferedModel extends WrapperBlockStateModel {
 				}
 				for (FaceLayer layer : faceLayers) {
 					emitRect(emitter, face, rect, layer, layer.tintIndex(), boundary ? null : light,
-							boundary || !tint ? WHITE : STEP_TINT);
+							boundary || !tint ? WHITE : STEP_TINT, emissive);
 				}
 			}
 		}
@@ -138,7 +139,7 @@ public class ChamferedModel extends WrapperBlockStateModel {
 				// The renderer would tint our quads as this block, not the neighbour, so resolve its tint here.
 				int color = tint ? END_CAP_TINT : tintColor(level, neighbourPos, neighbour, layer.tintIndex());
 				for (Rect rect : caps) {
-					emitRect(emitter, into, rect, layer, -1, light, color);
+					emitRect(emitter, into, rect, layer, -1, light, color, neighbour.emissiveRendering());
 				}
 			}
 		}
@@ -195,7 +196,7 @@ public class ChamferedModel extends WrapperBlockStateModel {
 	 * smoothly per vertex; without it, it's a boundary face and the renderer lights (and culls) it like a normal one.
 	 */
 	private static void emitRect(QuadEmitter emitter, Face face, Rect rect, FaceLayer layer, int tintIndex,
-			@Nullable CornerLight light, int color) {
+			@Nullable CornerLight light, int color, boolean emissive) {
 		emitter.square(DIRECTIONS[face.ordinal()], rect.u0() / 16f, rect.v0() / 16f, rect.u1() / 16f, rect.v1() / 16f, rect.depth() / 16f);
 		for (int i = 0; i < 4; i++) {
 			float x = emitter.x(i);
@@ -217,6 +218,7 @@ public class ChamferedModel extends WrapperBlockStateModel {
 		emitter.materialBake(layer.material(), MutableQuadView.BAKE_NORMALIZED);
 		emitter.tintIndex(tintIndex);
 		emitter.ambientOcclusion(light != null ? TriState.FALSE : TriState.DEFAULT);
+		emitter.emissive(emissive);
 		emitter.emit();
 	}
 }

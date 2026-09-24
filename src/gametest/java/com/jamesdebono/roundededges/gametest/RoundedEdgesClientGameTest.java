@@ -58,6 +58,22 @@ public class RoundedEdgesClientGameTest implements FabricClientGameTest {
 			int bx2 = x + 2;
 			fill(sp, bx2, y, iz, bx2, y, iz + 1);
 			fill(sp, bx2 + 1, y, iz, bx2 + 1, y, iz);
+			// Grass hill: a 7x7 plateau with a 3x3 top, plants on some edges (edges must still round under them).
+			int hz = feet.getZ() + 14;
+			fill(sp, x - 3, y, hz - 3, x + 3, y, hz + 3, "grass_block");
+			fill(sp, x - 1, y + 1, hz - 1, x + 1, y + 1, hz + 1, "grass_block");
+			sp.getServer().runCommand("setblock %d %d %d minecraft:short_grass".formatted(x + 3, y + 1, hz));
+			sp.getServer().runCommand("setblock %d %d %d minecraft:poppy".formatted(x + 3, y + 1, hz + 2));
+			// A seam across materials: stone, dirt, grass in a row; the cut should run straight through.
+			fill(sp, x + 6, y, hz, x + 6, y, hz, "stone");
+			fill(sp, x + 7, y, hz, x + 7, y, hz, "dirt");
+			fill(sp, x + 8, y, hz, x + 8, y, hz, "grass_block");
+			// A floating row of natural blocks.
+			int rz = feet.getZ() + 24;
+			for (int i = 0; i < MATERIALS.length; i++) {
+				int mx = x - 11 + 2 * i;
+				fill(sp, mx, y + 2, rz, mx, y + 2, rz, MATERIALS[i]);
+			}
 
 			sp.getServer().runCommand("gamemode spectator @a");
 			sp.getServer().runCommand("time set noon");
@@ -88,11 +104,20 @@ public class RoundedEdgesClientGameTest implements FabricClientGameTest {
 			}
 			setInsideCorners(context, sp, InsideCorners.MITRE);
 
+			// Natural materials.
+			shoot(context, sp, "grass_hill", x + 6.5, y + 4.5, hz + 8, x, y + 0.5, hz);
+			shoot(context, sp, "grass_edge_plants", x + 5.8, y + 2.6, hz + 3.2, x + 3.5, y + 1, hz + 1);
+			shoot(context, sp, "material_seam", x + 7.5, y + 1.8, hz + 2.4, x + 7.5, y + 0.8, hz + 0.5);
+			shoot(context, sp, "materials_left", x - 6, y + 4.5, rz + 6, x - 6, y + 2.5, rz);
+			shoot(context, sp, "materials_right", x + 6, y + 4.5, rz + 6, x + 6, y + 2.5, rz);
+
 			// Same views with the debug tint (steps blue, end caps red).
 			setFlags(context, sp, true, true);
 			shoot(context, sp, "tint_overview", x + 4.5, y + 7, z + 13, x + 4.5, y + 1, z);
 			shoot(context, sp, "tint_end_cap", x + 8.2, y + 1.6, z + 3.2, x + 10, y + 1, z + 2);
 			shoot(context, sp, "tint_lone_block_corner", x - 7 + 2.2, y + 2 + 1.8, z + 2.2, x - 6.5, y + 2.5, z + 0.5);
+			shoot(context, sp, "tint_material_seam", x + 9.5, y + 2.2, hz + 2.6, x + 7.5, y + 0.8, hz + 0.5);
+			shoot(context, sp, "tint_materials_left", x - 6, y + 4.5, rz + 6, x - 6, y + 2.5, rz);
 
 			// Carving off, for comparison.
 			setFlags(context, sp, false, false);
@@ -128,8 +153,17 @@ public class RoundedEdgesClientGameTest implements FabricClientGameTest {
 		}
 	}
 
+	private static final String[] MATERIALS = {
+			"grass_block", "dirt", "sand", "gravel", "coal_ore", "iron_ore", "deepslate_diamond_ore",
+			"orange_terracotta", "netherrack", "basalt", "magma_block", "end_stone",
+	};
+
 	private static void fill(TestSingleplayerContext sp, int x1, int y1, int z1, int x2, int y2, int z2) {
-		sp.getServer().runCommand("fill %d %d %d %d %d %d minecraft:stone".formatted(x1, y1, z1, x2, y2, z2));
+		fill(sp, x1, y1, z1, x2, y2, z2, "stone");
+	}
+
+	private static void fill(TestSingleplayerContext sp, int x1, int y1, int z1, int x2, int y2, int z2, String block) {
+		sp.getServer().runCommand("fill %d %d %d %d %d %d minecraft:%s".formatted(x1, y1, z1, x2, y2, z2, block));
 	}
 
 	private static void setInsideCorners(ClientGameTestContext context, TestSingleplayerContext sp, InsideCorners mode) {

@@ -26,6 +26,7 @@ public class RoundedEdgesClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		CarvableBlocks.init();
 		ModelLoadingPlugin.register(context -> context.modifyBlockModelAfterBake().register((model, ctx) ->
 				ChamferedModel.isCarvable(ctx.state()) ? new ChamferedModel(model, RoundedEdgesSettings.CARVER) : model));
 

@@ -9,4 +9,4 @@ pluginManagement {
 	}
 }
 
-rootProject.name = 'minecraft-rounded-edges'
+rootProject.name = 'rounded-edges'
