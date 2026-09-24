@@ -1,8 +1,4 @@
 {
-	"key.category.rounded_edges.debug": "Rounded Edges (prototype)",
-	"key.rounded_edges.toggle": "Toggle rounded edges",
-	"key.rounded_edges.debug_tint": "Toggle debug tint",
-	"key.rounded_edges.stats": "Show carve timing",
-	"key.rounded_edges.inside_corners": "Cycle inside-corner style",
-	"key.rounded_edges.carve_distance": "Cycle carve distance"
+	"key.category.rounded_edges.main": "Rounded Edges",
+	"key.rounded_edges.carve_distance": "Carve distance (64 / 32 blocks)"
 }

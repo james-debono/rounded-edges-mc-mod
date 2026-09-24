@@ -10,9 +10,7 @@ import com.jamesdebono.roundededges.carve.Profile;
 public final class RoundedEdgesSettings {
 	public static final Carver CARVER = new Carver(Profile.STAIR_2);
 
-	/** Carve distances (blocks) cycled in-game; 0 = no limit. */
-	public static final int[] CARVE_DISTANCES = {32, 48, 64, 96, 128, 0};
-
+	/** Master switch and debug tint; no longer on keys, but the automated game test still uses them. */
 	public static volatile boolean enabled = true;
 	public static volatile boolean debugTint = false;
 	/**

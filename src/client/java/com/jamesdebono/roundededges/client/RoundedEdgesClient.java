@@ -14,7 +14,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 
-import com.jamesdebono.roundededges.carve.InsideCorners;
 import com.jamesdebono.roundededges.client.debug.CarveStats;
 import com.jamesdebono.roundededges.client.model.ChamferedModel;
 
@@ -22,7 +21,7 @@ public class RoundedEdgesClient implements ClientModInitializer {
 	public static final String MOD_ID = "rounded_edges";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "debug"));
+	private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
 
 	@Override
 	public void onInitializeClient() {
@@ -30,44 +29,13 @@ public class RoundedEdgesClient implements ClientModInitializer {
 		ModelLoadingPlugin.register(context -> context.modifyBlockModelAfterBake().register((model, ctx) ->
 				ChamferedModel.isCarvable(ctx.state()) ? new ChamferedModel(model, RoundedEdgesSettings.CARVER) : model));
 
-		KeyMapping toggle = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rounded_edges.toggle", GLFW.GLFW_KEY_J, CATEGORY));
-		KeyMapping tint = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rounded_edges.debug_tint", GLFW.GLFW_KEY_K, CATEGORY));
-		KeyMapping stats = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rounded_edges.stats", GLFW.GLFW_KEY_U, CATEGORY));
-		KeyMapping insideCorners = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rounded_edges.inside_corners", GLFW.GLFW_KEY_I, CATEGORY));
-		KeyMapping distance = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rounded_edges.carve_distance", GLFW.GLFW_KEY_O, CATEGORY));
+		KeyMapping distance = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rounded_edges.carve_distance", GLFW.GLFW_KEY_I, CATEGORY));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			CarveDistance.tick(client);
 			while (distance.consumeClick()) {
-				int[] options = RoundedEdgesSettings.CARVE_DISTANCES;
-				int next = options[0];
-				for (int i = 0; i < options.length; i++) {
-					if (options[i] == RoundedEdgesSettings.carveDistance) {
-						next = options[(i + 1) % options.length];
-					}
-				}
-				RoundedEdgesSettings.carveDistance = next;
-				rebuild(client, "Carve distance: " + (next == 0 ? "unlimited" : next + " blocks"));
-			}
-			while (toggle.consumeClick()) {
-				RoundedEdgesSettings.enabled = !RoundedEdgesSettings.enabled;
-				rebuild(client, "Rounded edges " + (RoundedEdgesSettings.enabled ? "ON" : "OFF"));
-			}
-			while (tint.consumeClick()) {
-				RoundedEdgesSettings.debugTint = !RoundedEdgesSettings.debugTint;
-				rebuild(client, "Debug tint " + (RoundedEdgesSettings.debugTint ? "ON (steps blue, end caps red)" : "OFF"));
-			}
-			while (insideCorners.consumeClick()) {
-				InsideCorners mode = RoundedEdgesSettings.CARVER.insideCorners().next();
-				RoundedEdgesSettings.CARVER.setInsideCorners(mode);
-				rebuild(client, "Inside corners: " + mode.label());
-			}
-			while (stats.consumeClick()) {
-				String summary = CarveStats.summary();
-				LOGGER.info(summary);
-				if (client.player != null) {
-					client.player.sendOverlayMessage(Component.literal(summary));
-				}
+				RoundedEdgesSettings.carveDistance = RoundedEdgesSettings.carveDistance == 64 ? 32 : 64;
+				rebuild(client, "Carve distance: " + RoundedEdgesSettings.carveDistance + " blocks");
 			}
 		});
 	}
