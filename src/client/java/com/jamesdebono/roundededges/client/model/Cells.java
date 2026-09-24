@@ -8,6 +8,8 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import com.jamesdebono.roundededges.carve.CarveKey;
 import com.jamesdebono.roundededges.carve.Face;
+import com.jamesdebono.roundededges.client.CarvableBlocks;
+import com.jamesdebono.roundededges.client.RoundedEdgesSettings;
 
 /**
  * Block states, light and AO shade around one block (offsets -2..2), read lazily and cached. One instance per
@@ -65,12 +67,22 @@ final class Cells implements CarveKey.Cells {
 			return CarveKey.EMPTY;
 		}
 		if (ChamferedModel.isCarvable(state)) {
-			return CarveKey.CARVABLE;
+			// Beyond the carve distance a carvable block is drawn as a plain cube, so treat it like any solid block.
+			return isNear(dx, dy, dz) ? CarveKey.CARVABLE : CarveKey.SOLID;
 		}
 		if (state.isSolidRender()) {
 			return CarveKey.SOLID;
 		}
 		return isOpen(state, dx, dy, dz) ? CarveKey.EMPTY : CarveKey.SOLID;
+	}
+
+	@Override
+	public int fixedMask(int dx, int dy, int dz) {
+		return kind(dx, dy, dz) == CarveKey.CARVABLE ? CarvableBlocks.fixedMask(state(dx, dy, dz)) : -1;
+	}
+
+	boolean isNear(int dx, int dy, int dz) {
+		return RoundedEdgesSettings.isNear(origin.getX() + dx, origin.getY() + dy, origin.getZ() + dz);
 	}
 
 	/**
@@ -106,6 +118,16 @@ final class Cells implements CarveKey.Cells {
 
 	/** The neighbourhood as seen from the neighbour on the given side (reads up to 2 away from the origin). */
 	CarveKey.Cells from(Face side) {
-		return (dx, dy, dz) -> kind(dx + side.dx, dy + side.dy, dz + side.dz);
+		return new CarveKey.Cells() {
+			@Override
+			public int kind(int dx, int dy, int dz) {
+				return Cells.this.kind(dx + side.dx, dy + side.dy, dz + side.dz);
+			}
+
+			@Override
+			public int fixedMask(int dx, int dy, int dz) {
+				return Cells.this.fixedMask(dx + side.dx, dy + side.dy, dz + side.dz);
+			}
+		};
 	}
 }

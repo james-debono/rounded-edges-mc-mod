@@ -8,7 +8,11 @@ import java.util.Set;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+
+import com.jamesdebono.roundededges.carve.EdgeMask;
 
 /**
  * The blocks that get carved: naturally generated terrain, not building materials. Kept in code rather than a block
@@ -41,25 +45,61 @@ public final class CarvableBlocks {
 			"end_stone", "obsidian", "crying_obsidian", "bedrock", "sculk", "amethyst_block", "budding_amethyst",
 	};
 
+	/** Tree leaves: cut by the normal exposure rule, so canopies round off where they meet air. */
+	private static final String[] LEAVES = {
+			"oak_leaves", "spruce_leaves", "birch_leaves", "jungle_leaves", "acacia_leaves", "dark_oak_leaves",
+			"mangrove_leaves", "cherry_leaves", "azalea_leaves", "flowering_azalea_leaves", "pale_oak_leaves",
+	};
+
+	/** Tree trunks: always cut the 4 edges along their axis, like the round sides of a real log. */
+	private static final String[] LOGS = {
+			"oak_log", "spruce_log", "birch_log", "jungle_log", "acacia_log", "dark_oak_log", "mangrove_log",
+			"cherry_log", "pale_oak_log", "crimson_stem", "warped_stem",
+	};
+
 	private static final Set<Block> BLOCKS = new HashSet<>();
+	private static final Set<Block> LOG_BLOCKS = new HashSet<>();
 
 	private CarvableBlocks() {
 	}
 
-	/** Resolves the list against the block registry; ids this game version doesn't have are skipped and reported. */
+	/** Resolves the lists against the block registry; ids this game version doesn't have are skipped and reported. */
 	static void init() {
 		List<String> missing = new ArrayList<>();
-		for (String id : IDS) {
-			BuiltInRegistries.BLOCK.getOptional(Identifier.withDefaultNamespace(id)).ifPresentOrElse(BLOCKS::add, () -> missing.add(id));
-		}
-		RoundedEdgesClient.LOGGER.info("Carving {} block types", BLOCKS.size());
+		resolve(IDS, BLOCKS, missing);
+		resolve(LEAVES, BLOCKS, missing);
+		resolve(LOGS, LOG_BLOCKS, missing);
+		BLOCKS.addAll(LOG_BLOCKS);
+		RoundedEdgesClient.LOGGER.info("Carving {} block types ({} logs)", BLOCKS.size(), LOG_BLOCKS.size());
 		if (!missing.isEmpty()) {
-			RoundedEdgesClient.LOGGER.warn("Unknown blocks in the carvable list, skipped: {}", missing);
+			RoundedEdgesClient.LOGGER.warn("Unknown blocks in the carvable lists, skipped: {}", missing);
 		}
 	}
 
-	/** Listed, and a full opaque cube (the carving assumes one; anything else is left alone). */
+	private static void resolve(String[] ids, Set<Block> into, List<String> missing) {
+		for (String id : ids) {
+			BuiltInRegistries.BLOCK.getOptional(Identifier.withDefaultNamespace(id)).ifPresentOrElse(into::add, () -> missing.add(id));
+		}
+	}
+
+	/**
+	 * Listed, and a full cube the carving can work on: opaque, or leaves (full-cube models with see-through
+	 * textures). Anything else is left alone.
+	 */
 	public static boolean contains(BlockState state) {
-		return BLOCKS.contains(state.getBlock()) && state.isSolidRender();
+		Block block = state.getBlock();
+		return BLOCKS.contains(block) && (state.isSolidRender() || block instanceof LeavesBlock);
+	}
+
+	/** For logs, the edges along the log's axis (always cut); -1 for blocks that follow the exposure rule. */
+	public static int fixedMask(BlockState state) {
+		if (!LOG_BLOCKS.contains(state.getBlock()) || !state.hasProperty(BlockStateProperties.AXIS)) {
+			return -1;
+		}
+		return EdgeMask.alongAxis(switch (state.getValue(BlockStateProperties.AXIS)) {
+			case Y -> 0;
+			case Z -> 1;
+			case X -> 2;
+		});
 	}
 }

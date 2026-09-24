@@ -3,5 +3,6 @@
 	"key.rounded_edges.toggle": "Toggle rounded edges",
 	"key.rounded_edges.debug_tint": "Toggle debug tint",
 	"key.rounded_edges.stats": "Show carve timing",
-	"key.rounded_edges.inside_corners": "Cycle inside-corner style"
+	"key.rounded_edges.inside_corners": "Cycle inside-corner style",
+	"key.rounded_edges.carve_distance": "Cycle carve distance"
 }

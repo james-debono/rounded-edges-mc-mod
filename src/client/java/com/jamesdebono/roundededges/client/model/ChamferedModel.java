@@ -12,6 +12,8 @@ import org.jspecify.annotations.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.block.BlockTintSource;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
+import net.minecraft.client.renderer.block.ModelBlockRenderer;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
@@ -20,6 +22,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 import net.fabricmc.fabric.api.client.model.loading.v1.wrapper.WrapperBlockStateModel;
@@ -33,6 +36,7 @@ import com.jamesdebono.roundededges.carve.Carver;
 import com.jamesdebono.roundededges.carve.Face;
 import com.jamesdebono.roundededges.carve.Rect;
 import com.jamesdebono.roundededges.client.CarvableBlocks;
+import com.jamesdebono.roundededges.client.CarveDistance;
 import com.jamesdebono.roundededges.client.RoundedEdgesSettings;
 import com.jamesdebono.roundededges.client.debug.CarveStats;
 
@@ -74,7 +78,11 @@ public class ChamferedModel extends WrapperBlockStateModel {
 		long start = System.nanoTime();
 		Cells cells = Cells.around(level, pos);
 		long key = CarveKey.compute(cells);
-		if (key == 0) {
+		if (key != 0 || CarvableBlocks.fixedMask(state) >= 0) {
+			// Remember this section has carving, so it's re-meshed when it crosses the carve distance.
+			CarveDistance.noteCarvable(pos);
+		}
+		if (key == 0 || !cells.isNear(0, 0, 0)) {
 			super.emitQuads(emitter, level, pos, state, random, cullTest);
 			return;
 		}
@@ -96,6 +104,8 @@ public class ChamferedModel extends WrapperBlockStateModel {
 		List<BlockStateModelPart> parts = partsAt(wrapped, state, pos);
 		CornerLight light = CornerLight.of(cells, Minecraft.getInstance().options.ambientOcclusion().get());
 		boolean emissive = state.emissiveRendering(); // e.g. magma renders full-bright
+		boolean cutoutLeaves = Minecraft.getInstance().options.cutoutLeaves().get();
+		boolean opaque = ModelBlockRenderer.forceOpaque(cutoutLeaves, state); // leaves drawn solid when cutout is off
 		for (Face face : Face.VALUES) {
 			if ((carvedFaces & face.bit()) == 0) {
 				continue;
@@ -109,29 +119,32 @@ public class ChamferedModel extends WrapperBlockStateModel {
 				}
 				for (FaceLayer layer : faceLayers) {
 					emitRect(emitter, face, rect, layer, layer.tintIndex(), boundary ? null : light,
-							boundary || !tint ? WHITE : STEP_TINT, emissive);
+							boundary || !tint ? WHITE : STEP_TINT, emissive, opaque);
 				}
 			}
 		}
 
-		// 3. End caps: where a cut runs into a solid neighbour whose own cut doesn't continue, that neighbour hides
-		// its face (it sees a full cube here), so draw its face patch ourselves.
+		// 3. End caps: where a cut runs into a full-cube neighbour whose own cut doesn't continue, and that neighbour
+		// hides its face against us (it sees a full cube here), draw its face patch ourselves.
 		boolean hadEndCaps = false;
 		for (Face side : Face.VALUES) {
 			if ((shape.openBoundaries() & side.bit()) == 0) {
 				continue;
 			}
 			BlockState neighbour = cells.state(side.dx, side.dy, side.dz);
-			if (!neighbour.isSolidRender()) {
-				continue;
+			Face into = side.opposite();
+			boolean fullCube = neighbour.isSolidRender() || isCarvable(neighbour);
+			if (!fullCube || Block.shouldRenderFace(neighbour, state, DIRECTIONS[into.ordinal()])) {
+				continue; // no face there, or the neighbour draws it itself
 			}
-			CarvedShape neighbourShape = isCarvable(neighbour) ? carver.shape(CarveKey.compute(cells.from(side))) : null;
+			boolean neighbourCarved = cells.kind(side.dx, side.dy, side.dz) == CarveKey.CARVABLE;
+			CarvedShape neighbourShape = neighbourCarved ? carver.shape(CarveKey.compute(cells.from(side))) : null;
 			List<Rect> caps = shape.endCaps(side, neighbourShape);
 			if (caps.isEmpty()) {
 				continue;
 			}
 			hadEndCaps = true;
-			Face into = side.opposite();
+			boolean neighbourOpaque = ModelBlockRenderer.forceOpaque(cutoutLeaves, neighbour);
 			BlockPos neighbourPos = cells.pos(side.dx, side.dy, side.dz).immutable();
 			BlockStateModel neighbourModel = Minecraft.getInstance().getModelManager().getBlockStateModelSet().get(neighbour);
 			List<FaceLayer> neighbourLayers = layersOf(partsAt(neighbourModel, neighbour, neighbourPos), into, particleMaterialLayer(neighbourModel));
@@ -139,7 +152,7 @@ public class ChamferedModel extends WrapperBlockStateModel {
 				// The renderer would tint our quads as this block, not the neighbour, so resolve its tint here.
 				int color = tint ? END_CAP_TINT : tintColor(level, neighbourPos, neighbour, layer.tintIndex());
 				for (Rect rect : caps) {
-					emitRect(emitter, into, rect, layer, -1, light, color, neighbour.emissiveRendering());
+					emitRect(emitter, into, rect, layer, -1, light, color, neighbour.emissiveRendering(), neighbourOpaque);
 				}
 			}
 		}
@@ -149,7 +162,8 @@ public class ChamferedModel extends WrapperBlockStateModel {
 
 	@Override
 	public @Nullable Object createGeometryKey(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random) {
-		if (!RoundedEdgesSettings.enabled || level.getBlockState(pos) != state || CarveKey.compute(Cells.around(level, pos)) == 0) {
+		Cells cells = RoundedEdgesSettings.enabled ? Cells.around(level, pos) : null;
+		if (cells == null || level.getBlockState(pos) != state || !cells.isNear(0, 0, 0) || CarveKey.compute(cells) == 0) {
 			return super.createGeometryKey(level, pos, state, random);
 		}
 		// Carved geometry depends on the neighbourhood; don't let renderers cache it.
@@ -196,7 +210,7 @@ public class ChamferedModel extends WrapperBlockStateModel {
 	 * smoothly per vertex; without it, it's a boundary face and the renderer lights (and culls) it like a normal one.
 	 */
 	private static void emitRect(QuadEmitter emitter, Face face, Rect rect, FaceLayer layer, int tintIndex,
-			@Nullable CornerLight light, int color, boolean emissive) {
+			@Nullable CornerLight light, int color, boolean emissive, boolean opaque) {
 		emitter.square(DIRECTIONS[face.ordinal()], rect.u0() / 16f, rect.v0() / 16f, rect.u1() / 16f, rect.v1() / 16f, rect.depth() / 16f);
 		for (int i = 0; i < 4; i++) {
 			float x = emitter.x(i);
@@ -216,9 +230,13 @@ public class ChamferedModel extends WrapperBlockStateModel {
 			}
 		}
 		emitter.materialBake(layer.material(), MutableQuadView.BAKE_NORMALIZED);
+		if (opaque) {
+			emitter.chunkLayer(ChunkSectionLayer.SOLID);
+		}
 		emitter.tintIndex(tintIndex);
 		emitter.ambientOcclusion(light != null ? TriState.FALSE : TriState.DEFAULT);
 		emitter.emissive(emissive);
 		emitter.emit();
+		CarveStats.quad();
 	}
 }

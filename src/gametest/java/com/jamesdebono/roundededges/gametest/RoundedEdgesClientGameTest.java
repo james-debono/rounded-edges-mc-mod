@@ -68,6 +68,13 @@ public class RoundedEdgesClientGameTest implements FabricClientGameTest {
 			fill(sp, x + 6, y, hz, x + 6, y, hz, "stone");
 			fill(sp, x + 7, y, hz, x + 7, y, hz, "dirt");
 			fill(sp, x + 8, y, hz, x + 8, y, hz, "grass_block");
+			// Trees: a small oak (trunk + leaf canopy), a wall of upright logs, and a fallen log lying east-west.
+			int tx = x + 14;
+			fill(sp, tx - 2, y + 2, hz - 2, tx + 2, y + 3, hz + 2, "oak_leaves[persistent=true]");
+			fill(sp, tx - 1, y + 4, hz - 1, tx + 1, y + 4, hz + 1, "oak_leaves[persistent=true]");
+			fill(sp, tx, y, hz, tx, y + 3, hz, "oak_log");
+			fill(sp, x + 18, y, hz, x + 21, y + 1, hz, "oak_log");
+			fill(sp, x + 18, y, hz - 3, x + 21, y, hz - 3, "oak_log[axis=x]");
 			// A floating row of natural blocks.
 			int rz = feet.getZ() + 24;
 			for (int i = 0; i < MATERIALS.length; i++) {
@@ -110,6 +117,10 @@ public class RoundedEdgesClientGameTest implements FabricClientGameTest {
 			shoot(context, sp, "material_seam", x + 7.5, y + 1.8, hz + 2.4, x + 7.5, y + 0.8, hz + 0.5);
 			shoot(context, sp, "materials_left", x - 6, y + 4.5, rz + 6, x - 6, y + 2.5, rz);
 			shoot(context, sp, "materials_right", x + 6, y + 4.5, rz + 6, x + 6, y + 2.5, rz);
+			shoot(context, sp, "tree", x + 14 + 4.5, y + 4.5, hz + 5.5, x + 14, y + 2.5, hz);
+			shoot(context, sp, "tree_trunk", x + 14 + 1.6, y + 1.4, hz + 2.2, x + 14.5, y + 1, hz + 0.5);
+			shoot(context, sp, "log_wall", x + 20, y + 2.4, hz + 3, x + 20, y + 1, hz + 0.5);
+			shoot(context, sp, "fallen_log", x + 17, y + 1.6, hz - 5.2, x + 19, y + 0.5, hz - 2.5);
 
 			// Same views with the debug tint (steps blue, end caps red).
 			setFlags(context, sp, true, true);
@@ -118,6 +129,8 @@ public class RoundedEdgesClientGameTest implements FabricClientGameTest {
 			shoot(context, sp, "tint_lone_block_corner", x - 7 + 2.2, y + 2 + 1.8, z + 2.2, x - 6.5, y + 2.5, z + 0.5);
 			shoot(context, sp, "tint_material_seam", x + 9.5, y + 2.2, hz + 2.6, x + 7.5, y + 0.8, hz + 0.5);
 			shoot(context, sp, "tint_materials_left", x - 6, y + 4.5, rz + 6, x - 6, y + 2.5, rz);
+			shoot(context, sp, "tint_tree", x + 14 + 4.5, y + 4.5, hz + 5.5, x + 14, y + 2.5, hz);
+			shoot(context, sp, "tint_fallen_log", x + 18.3, y + 0.9, hz - 4.6, x + 19, y + 0.1, hz - 3);
 
 			// Carving off, for comparison.
 			setFlags(context, sp, false, false);
@@ -141,12 +154,21 @@ public class RoundedEdgesClientGameTest implements FabricClientGameTest {
 					s.setSeed("rounded-edges");
 				})
 				.create()) {
+			// Compare carving everything with a limited carve distance. The test world's render distance is 5 (80
+			// blocks), so 32 stands in for the default 64 at the user's render distance of 12.
 			sp.getConnection().waitForChunksRender();
-			context.runOnClient(client -> RoundedEdgesClient.LOGGER.info("[natural world, first load] {} (render distance {})",
-					CarveStats.summary(), client.options.getEffectiveRenderDistance()));
-			context.runOnClient(client -> CarveStats.reset());
-			setFlags(context, sp, true, false);
-			context.runOnClient(client -> RoundedEdgesClient.LOGGER.info("[natural world, rebuild] {}", CarveStats.summary()));
+			for (int distance : new int[] {0, 32}) {
+				context.runOnClient(client -> {
+					RoundedEdgesSettings.carveDistance = distance;
+					CarveStats.reset();
+					client.levelExtractor.allChanged();
+				});
+				context.waitTicks(100);
+				sp.getConnection().waitForChunksRender(false);
+				context.runOnClient(client -> RoundedEdgesClient.LOGGER.info("[natural world, render distance {}, carve distance {}] {}",
+						client.options.getEffectiveRenderDistance(), distance == 0 ? "unlimited" : distance, CarveStats.summary()));
+			}
+			context.runOnClient(client -> RoundedEdgesSettings.carveDistance = 64);
 			sp.getServer().runCommand("gamemode spectator @a");
 			BlockPos spawn = context.computeOnClient(client -> client.player.blockPosition());
 			shoot(context, sp, "natural_terrain", spawn.getX(), spawn.getY() + 25, spawn.getZ(), spawn.getX() + 40, spawn.getY(), spawn.getZ() + 40);

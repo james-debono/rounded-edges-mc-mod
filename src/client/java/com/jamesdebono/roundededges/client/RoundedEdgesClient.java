@@ -34,8 +34,21 @@ public class RoundedEdgesClient implements ClientModInitializer {
 		KeyMapping tint = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rounded_edges.debug_tint", GLFW.GLFW_KEY_K, CATEGORY));
 		KeyMapping stats = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rounded_edges.stats", GLFW.GLFW_KEY_U, CATEGORY));
 		KeyMapping insideCorners = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rounded_edges.inside_corners", GLFW.GLFW_KEY_I, CATEGORY));
+		KeyMapping distance = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.rounded_edges.carve_distance", GLFW.GLFW_KEY_O, CATEGORY));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			CarveDistance.tick(client);
+			while (distance.consumeClick()) {
+				int[] options = RoundedEdgesSettings.CARVE_DISTANCES;
+				int next = options[0];
+				for (int i = 0; i < options.length; i++) {
+					if (options[i] == RoundedEdgesSettings.carveDistance) {
+						next = options[(i + 1) % options.length];
+					}
+				}
+				RoundedEdgesSettings.carveDistance = next;
+				rebuild(client, "Carve distance: " + (next == 0 ? "unlimited" : next + " blocks"));
+			}
 			while (toggle.consumeClick()) {
 				RoundedEdgesSettings.enabled = !RoundedEdgesSettings.enabled;
 				rebuild(client, "Rounded edges " + (RoundedEdgesSettings.enabled ? "ON" : "OFF"));

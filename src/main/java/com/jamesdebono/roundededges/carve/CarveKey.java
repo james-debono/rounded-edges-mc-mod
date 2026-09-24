@@ -23,22 +23,29 @@ public final class CarveKey {
 	@FunctionalInterface
 	public interface Cells {
 		int kind(int dx, int dy, int dz);
+
+		/**
+		 * For carvable blocks whose cuts don't depend on their surroundings (logs always round the edges along their
+		 * axis): that fixed edge mask. -1 for blocks that follow the exposure rule.
+		 */
+		default int fixedMask(int dx, int dy, int dz) {
+			return -1;
+		}
 	}
 
 	private CarveKey() {
 	}
 
 	public static long compute(Cells cells) {
-		int mask = EdgeMask.compute((dx, dy, dz) -> cells.kind(dx, dy, dz) == EMPTY);
+		int fixed = cells.fixedMask(0, 0, 0);
+		int mask = fixed >= 0 ? fixed : EdgeMask.compute((dx, dy, dz) -> cells.kind(dx, dy, dz) == EMPTY);
 		long corners = 0;
 		for (Vertex vertex : Vertex.VALUES) {
 			Face fy = vertex.face(0);
 			Face fz = vertex.face(1);
 			Face fx = vertex.face(2);
-			// Every cut ending at this corner has the cell diagonally out from the corner as one of its empty cells.
-			if (cells.kind(fx.dx, fy.dy, fz.dz) != EMPTY) {
-				continue;
-			}
+			// A rule-based cut ending here needs the cell diagonally out from this corner to be empty.
+			boolean cornerOpen = cells.kind(fx.dx, fy.dy, fz.dz) == EMPTY;
 			int bits = 0;
 			for (int axis = 0; axis < 3; axis++) {
 				Edge edge = vertex.edge(axis);
@@ -46,7 +53,12 @@ public final class CarveKey {
 					continue;
 				}
 				Face beyond = vertex.face(axis);
-				if (cells.kind(beyond.dx, beyond.dy, beyond.dz) == CARVABLE && isCut(cells, beyond, edge)) {
+				if (cells.kind(beyond.dx, beyond.dy, beyond.dz) != CARVABLE) {
+					continue;
+				}
+				int beyondFixed = cells.fixedMask(beyond.dx, beyond.dy, beyond.dz);
+				boolean cut = beyondFixed >= 0 ? (beyondFixed & edge.bit()) != 0 : cornerOpen && isCut(cells, beyond, edge);
+				if (cut) {
 					bits |= 1 << axis;
 				}
 			}
