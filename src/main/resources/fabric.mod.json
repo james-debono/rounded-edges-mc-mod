@@ -1,0 +1,23 @@
+{
+	"schemaVersion": 1,
+	"id": "rounded_edges",
+	"version": "${version}",
+	"name": "Rounded Edges",
+	"description": "Carves a stepped 45-degree chamfer into the exposed edges of terrain blocks. Prototype: stone only.",
+	"authors": [
+		"James Debono"
+	],
+	"license": "All-Rights-Reserved",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.jamesdebono.roundededges.client.RoundedEdgesClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

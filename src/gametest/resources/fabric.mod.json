@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "rounded_edges-test",
+	"version": "1.0.0",
+	"name": "Rounded Edges client game tests",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"com.jamesdebono.roundededges.gametest.RoundedEdgesClientGameTest"
+		]
+	},
+	"depends": {
+		"rounded_edges": "*"
+	}
+}
