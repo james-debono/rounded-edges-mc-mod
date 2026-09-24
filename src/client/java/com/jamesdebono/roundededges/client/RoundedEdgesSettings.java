@@ -6,16 +6,20 @@ import net.minecraft.core.SectionPos;
 import com.jamesdebono.roundededges.carve.Carver;
 import com.jamesdebono.roundededges.carve.Profile;
 
-/** Runtime switches for the prototype. Read from chunk-build threads, so the fields are volatile. */
+/**
+ * Fixed settings (players get no options). Read from chunk-build threads, so the fields are volatile; only the
+ * automated game test changes them.
+ */
 public final class RoundedEdgesSettings {
 	public static final Carver CARVER = new Carver(Profile.STAIR_2);
 
-	/** Master switch and debug tint; no longer on keys, but the automated game test still uses them. */
+	/** Carving on/off and the debug tint; test-only switches. */
 	public static volatile boolean enabled = true;
 	public static volatile boolean debugTint = false;
 	/**
-	 * Only chunk sections within this many blocks of the camera are carved (0 = all). The steps are a sixteenth of a
-	 * block, about a pixel at 64 blocks, so carving further away costs geometry for detail you can't see.
+	 * Only chunk sections within this many blocks of the camera are carved (0 = all; test-only). The steps are a
+	 * sixteenth of a block, about a pixel at 64 blocks, so carving further away costs geometry for detail you can't
+	 * see; in play, 32 and 64 made no measurable difference.
 	 */
 	public static volatile int carveDistance = 64;
 
