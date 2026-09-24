@@ -32,13 +32,25 @@ public final class RoundedEdgesSettings {
 	private RoundedEdgesSettings() {
 	}
 
-	/** Whether the section containing this block is carved. Decided per section, so a section is all or nothing. */
-	public static boolean isNear(int x, int y, int z) {
-		return isNear(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(y), SectionPos.blockToSectionCoord(z), anchor);
+	/**
+	 * Leaves carve out to at most this far. Their noisy see-through texture hides the steps sooner, and every carved
+	 * leaf adds see-through quads, which shaders draw twice (once for shadows).
+	 */
+	public static final int LEAVES_DISTANCE = 24;
+
+	/**
+	 * Whether blocks of this kind in the section containing this block are carved. Decided per section, so a section
+	 * is all or nothing for each kind.
+	 */
+	public static boolean isNear(int x, int y, int z, boolean leaves) {
+		return isNear(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(y), SectionPos.blockToSectionCoord(z), anchor, leaves);
 	}
 
-	static boolean isNear(int sx, int sy, int sz, long from) {
+	static boolean isNear(int sx, int sy, int sz, long from, boolean leaves) {
 		int limit = carveDistance;
+		if (leaves) {
+			limit = limit <= 0 ? LEAVES_DISTANCE : Math.min(limit, LEAVES_DISTANCE);
+		}
 		if (limit <= 0) {
 			return true;
 		}

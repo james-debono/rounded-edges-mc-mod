@@ -3,7 +3,6 @@ package com.jamesdebono.roundededges.client.model;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.LightCoordsUtil;
-import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 import com.jamesdebono.roundededges.carve.CarveKey;
@@ -67,13 +66,13 @@ final class Cells implements CarveKey.Cells {
 			return CarveKey.EMPTY;
 		}
 		if (ChamferedModel.isCarvable(state)) {
-			// Beyond the carve distance a carvable block is drawn as a plain cube, so treat it like any solid block.
-			return isNear(dx, dy, dz) ? CarveKey.CARVABLE : CarveKey.SOLID;
+			// Beyond the carve distance a carvable block is drawn uncut, so treat it like any solid block.
+			return isNear(state, dx, dy, dz) ? CarveKey.CARVABLE : CarveKey.SOLID;
 		}
-		if (state.isSolidRender()) {
-			return CarveKey.SOLID;
-		}
-		return isOpen(state, dx, dy, dz) ? CarveKey.EMPTY : CarveKey.SOLID;
+		// Anything that isn't a full opaque cube (water, torches, fences, glass, slabs, plants...) leaves room for
+		// the edge to round. Where such a block hides part of its face against ours, the model draws that part
+		// back into the cut, so nothing opens up.
+		return state.isSolidRender() ? CarveKey.SOLID : CarveKey.EMPTY;
 	}
 
 	@Override
@@ -81,19 +80,14 @@ final class Cells implements CarveKey.Cells {
 		return kind(dx, dy, dz) == CarveKey.CARVABLE ? CarvableBlocks.fixedMask(state(dx, dy, dz)) : -1;
 	}
 
-	boolean isNear(int dx, int dy, int dz) {
-		return RoundedEdgesSettings.isNear(origin.getX() + dx, origin.getY() + dy, origin.getZ() + dz);
+	@Override
+	public boolean isShort(int dx, int dy, int dz) {
+		return kind(dx, dy, dz) == CarveKey.CARVABLE && CarvableBlocks.isShort(state(dx, dy, dz));
 	}
 
-	/**
-	 * Decorations you can walk through (grass, flowers, torches, cobwebs...) count as empty, so edges still round
-	 * under them. They don't hide faces against our block, so the cut can't open a hole. Fluids, snow layers and
-	 * anything with collision (leaves, glass, slabs...) stay solid.
-	 */
-	private boolean isOpen(BlockState state, int dx, int dy, int dz) {
-		return state.getFluidState().isEmpty()
-				&& !(state.getBlock() instanceof SnowLayerBlock)
-				&& state.getCollisionShape(level, pos(dx, dy, dz)).isEmpty();
+	/** Whether the carvable block at this offset is within its carve distance. */
+	boolean isNear(BlockState state, int dx, int dy, int dz) {
+		return RoundedEdgesSettings.isNear(origin.getX() + dx, origin.getY() + dy, origin.getZ() + dz, CarvableBlocks.isLeaves(state));
 	}
 
 	int light(int dx, int dy, int dz) {
@@ -127,6 +121,11 @@ final class Cells implements CarveKey.Cells {
 			@Override
 			public int fixedMask(int dx, int dy, int dz) {
 				return Cells.this.fixedMask(dx + side.dx, dy + side.dy, dz + side.dz);
+			}
+
+			@Override
+			public boolean isShort(int dx, int dy, int dz) {
+				return Cells.this.isShort(dx + side.dx, dy + side.dy, dz + side.dz);
 			}
 		};
 	}

@@ -51,14 +51,21 @@ public final class CarvableBlocks {
 			"mangrove_leaves", "cherry_leaves", "azalea_leaves", "flowering_azalea_leaves", "pale_oak_leaves",
 	};
 
-	/** Tree trunks: always cut the 4 edges along their axis, like the round sides of a real log. */
+	/** Tree trunks (and stripped ones): always cut the 4 edges along their axis, like the round sides of a real log. */
 	private static final String[] LOGS = {
 			"oak_log", "spruce_log", "birch_log", "jungle_log", "acacia_log", "dark_oak_log", "mangrove_log",
 			"cherry_log", "pale_oak_log", "crimson_stem", "warped_stem",
+			"stripped_oak_log", "stripped_spruce_log", "stripped_birch_log", "stripped_jungle_log",
+			"stripped_acacia_log", "stripped_dark_oak_log", "stripped_mangrove_log", "stripped_cherry_log",
+			"stripped_pale_oak_log", "stripped_crimson_stem", "stripped_warped_stem",
 	};
+
+	/** 15/16-tall ground: cut from their real top. */
+	private static final String[] SHORT = {"dirt_path", "farmland"};
 
 	private static final Set<Block> BLOCKS = new HashSet<>();
 	private static final Set<Block> LOG_BLOCKS = new HashSet<>();
+	private static final Set<Block> SHORT_BLOCKS = new HashSet<>();
 
 	private CarvableBlocks() {
 	}
@@ -69,7 +76,9 @@ public final class CarvableBlocks {
 		resolve(IDS, BLOCKS, missing);
 		resolve(LEAVES, BLOCKS, missing);
 		resolve(LOGS, LOG_BLOCKS, missing);
+		resolve(SHORT, SHORT_BLOCKS, missing);
 		BLOCKS.addAll(LOG_BLOCKS);
+		BLOCKS.addAll(SHORT_BLOCKS);
 		RoundedEdgesClient.LOGGER.info("Carving {} block types ({} logs)", BLOCKS.size(), LOG_BLOCKS.size());
 		if (!missing.isEmpty()) {
 			RoundedEdgesClient.LOGGER.warn("Unknown blocks in the carvable lists, skipped: {}", missing);
@@ -83,12 +92,21 @@ public final class CarvableBlocks {
 	}
 
 	/**
-	 * Listed, and a full cube the carving can work on: opaque, or leaves (full-cube models with see-through
-	 * textures). Anything else is left alone.
+	 * Listed, and a shape the carving can work on: an opaque full cube, leaves (full-cube models with see-through
+	 * textures), or 15/16-tall ground. Anything else is left alone.
 	 */
 	public static boolean contains(BlockState state) {
 		Block block = state.getBlock();
-		return BLOCKS.contains(block) && (state.isSolidRender() || block instanceof LeavesBlock);
+		return BLOCKS.contains(block) && (state.isSolidRender() || block instanceof LeavesBlock || SHORT_BLOCKS.contains(block));
+	}
+
+	public static boolean isLeaves(BlockState state) {
+		return state.getBlock() instanceof LeavesBlock;
+	}
+
+	/** 15/16 tall (dirt path, farmland). */
+	public static boolean isShort(BlockState state) {
+		return SHORT_BLOCKS.contains(state.getBlock());
 	}
 
 	/** For logs, the edges along the log's axis (always cut); -1 for blocks that follow the exposure rule. */

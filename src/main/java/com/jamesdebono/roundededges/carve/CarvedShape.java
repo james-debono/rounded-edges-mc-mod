@@ -18,9 +18,20 @@ public final class CarvedShape {
 	private final int carvedFaces;
 	private final int openBoundaries;
 
+	/** Highest kept row: 15 for full blocks, 14 for 15/16-tall ones (paths, farmland). */
+	private final int top;
+
 	CarvedShape(Profile profile, InsideCorners insideCorners, long key) {
 		this.key = key;
 		this.kept = Voxels.full();
+		this.top = CarveKey.isShort(key) ? 14 : 15;
+		if (top < 15) {
+			for (int z = 0; z < 16; z++) {
+				for (int x = 0; x < 16; x++) {
+					Voxels.clear(kept, Voxels.index(x, 15, z));
+				}
+			}
+		}
 		int mask = CarveKey.mask(key);
 		int reach = profile.reach();
 		int[] c = new int[3]; // coordinates indexed by Face.axis(): 0 = y, 1 = z, 2 = x
@@ -34,8 +45,8 @@ public final class CarvedShape {
 					if (!profile.removed(a, b)) {
 						continue;
 					}
-					c[edge.a.axis()] = edge.a.positive() ? 15 - a : a;
-					c[edge.b.axis()] = edge.b.positive() ? 15 - b : b;
+					c[edge.a.axis()] = coord(edge.a, a);
+					c[edge.b.axis()] = coord(edge.b, b);
 					for (int t = 0; t < 16; t++) {
 						c[edge.axis()] = t;
 						Voxels.clear(kept, Voxels.index(c[2], c[0], c[1]));
@@ -62,8 +73,8 @@ public final class CarvedShape {
 			List<Rect> out = new ArrayList<>();
 			int[] rows = new int[16];
 			// A cell deeper than the reach can't have a removed cell in front of it (the profile is monotone), so
-			// only the first reach + 1 layers can show this face.
-			for (int d = 0; d <= Math.min(reach, 15); d++) {
+			// only the first reach + 1 layers can show this face (one more on top of a 15/16-tall block).
+			for (int d = 0; d <= Math.min(reach + 15 - top, 15); d++) {
 				for (int v = 0; v < 16; v++) {
 					int row = 0;
 					for (int u = 0; u < 16; u++) {
@@ -115,13 +126,21 @@ public final class CarvedShape {
 					};
 					if (remove) {
 						for (int axis = 0; axis < 3; axis++) {
-							c[axis] = vertex.face(axis).positive() ? 15 - depth[axis] : depth[axis];
+							c[axis] = coord(vertex.face(axis), depth[axis]);
 						}
 						Voxels.clear(kept, Voxels.index(c[2], c[0], c[1]));
 					}
 				}
 			}
 		}
+	}
+
+	/** Sub-voxel coordinate on the face's axis, {@code depth} cells in from that face (the top of a short block is lower). */
+	private int coord(Face face, int depth) {
+		if (!face.positive()) {
+			return depth;
+		}
+		return (face == Face.UP ? top : 15) - depth;
 	}
 
 	public long key() {

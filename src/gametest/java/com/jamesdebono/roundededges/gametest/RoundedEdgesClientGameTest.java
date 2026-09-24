@@ -75,6 +75,21 @@ public class RoundedEdgesClientGameTest implements FabricClientGameTest {
 			fill(sp, tx, y, hz, tx, y + 3, hz, "oak_log");
 			fill(sp, x + 18, y, hz, x + 21, y + 1, hz, "oak_log");
 			fill(sp, x + 18, y, hz - 3, x + 21, y, hz - 3, "oak_log[axis=x]");
+			// Farm: wet farmland either side of a water channel, wheat on top, and a dirt path beyond.
+			int fz = feet.getZ() + 32;
+			fill(sp, x - 4, y - 1, fz - 2, x + 4, y - 1, fz + 2, "farmland[moisture=7]");
+			fill(sp, x - 4, y - 1, fz, x + 4, y - 1, fz, "water");
+			fill(sp, x - 4, y, fz - 2, x + 4, y, fz - 1, "wheat[age=7]");
+			fill(sp, x - 4, y - 1, fz + 3, x + 4, y - 1, fz + 4, "dirt_path");
+			// Non-full neighbours: stone with a fence beside it and a torch on top; stone beside glass and a slab;
+			// a stripped log.
+			fill(sp, x + 8, y, fz, x + 8, y, fz, "stone");
+			fill(sp, x + 9, y, fz, x + 9, y, fz, "oak_fence");
+			fill(sp, x + 8, y + 1, fz, x + 8, y + 1, fz, "torch");
+			fill(sp, x + 11, y, fz, x + 11, y, fz, "stone");
+			fill(sp, x + 12, y, fz, x + 12, y, fz, "glass");
+			fill(sp, x + 11, y, fz + 1, x + 11, y, fz + 1, "stone_slab");
+			fill(sp, x + 14, y, fz, x + 14, y + 1, fz, "stripped_oak_log");
 			// A floating row of natural blocks.
 			int rz = feet.getZ() + 24;
 			for (int i = 0; i < MATERIALS.length; i++) {
@@ -121,6 +136,12 @@ public class RoundedEdgesClientGameTest implements FabricClientGameTest {
 			shoot(context, sp, "tree_trunk", x + 14 + 1.6, y + 1.4, hz + 2.2, x + 14.5, y + 1, hz + 0.5);
 			shoot(context, sp, "log_wall", x + 20, y + 2.4, hz + 3, x + 20, y + 1, hz + 0.5);
 			shoot(context, sp, "fallen_log", x + 17, y + 1.6, hz - 5.2, x + 19, y + 0.5, hz - 2.5);
+			int fz2 = feet.getZ() + 32;
+			shoot(context, sp, "farm_water", x + 1.5, y + 1.6, fz2 + 3.2, x, y - 0.4, fz2);
+			shoot(context, sp, "farm_path", x + 1.5, y + 1.4, fz2 + 6.5, x, y - 0.5, fz2 + 3.5);
+			shoot(context, sp, "fence_torch", x + 10.2, y + 1.8, fz2 + 2.2, x + 8.8, y + 0.7, fz2 + 0.5);
+			shoot(context, sp, "glass_slab", x + 13.2, y + 1.6, fz2 + 2.6, x + 11.8, y + 0.6, fz2 + 0.8);
+			shoot(context, sp, "stripped_log", x + 15.4, y + 1.8, fz2 + 1.8, x + 14.5, y + 1, fz2 + 0.5);
 
 			// Same views with the debug tint (steps blue, end caps red).
 			setFlags(context, sp, true, true);
@@ -131,6 +152,8 @@ public class RoundedEdgesClientGameTest implements FabricClientGameTest {
 			shoot(context, sp, "tint_materials_left", x - 6, y + 4.5, rz + 6, x - 6, y + 2.5, rz);
 			shoot(context, sp, "tint_tree", x + 14 + 4.5, y + 4.5, hz + 5.5, x + 14, y + 2.5, hz);
 			shoot(context, sp, "tint_fallen_log", x + 18.3, y + 0.9, hz - 4.6, x + 19, y + 0.1, hz - 3);
+			shoot(context, sp, "tint_fence_torch", x + 10.2, y + 1.8, feet.getZ() + 32 + 2.2, x + 8.8, y + 0.7, feet.getZ() + 32 + 0.5);
+			shoot(context, sp, "tint_glass_slab", x + 13.2, y + 1.6, feet.getZ() + 32 + 2.6, x + 11.8, y + 0.6, feet.getZ() + 32 + 0.8);
 
 			// Carving off, for comparison.
 			setFlags(context, sp, false, false);
