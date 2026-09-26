@@ -1,5 +1,7 @@
 # Rounded Edges
 
+<img src="src/main/resources/assets/rounded_edges/icon.png" alt="Rounded Edges icon" width="128">
+
 A client-side Fabric mod for Minecraft Java 26.2 that carves a small stepped bevel into the exposed edges of natural terrain, logs and leaves.
 
 The bevel is two sixteenths deep, cut as 1-pixel steps, so the world keeps its blocky look but loses the razor-sharp corners. The cuts are real geometry: you see through them to whatever is behind, lit and textured like the rest of the block.
