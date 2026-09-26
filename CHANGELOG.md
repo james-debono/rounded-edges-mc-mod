@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 (beta) — unreleased
+## 1.0.0 (beta) — 2026-09-26
 First public release, for Minecraft 26.2 (Fabric).
 
 - Stepped 2-sixteenth bevel on the exposed edges of 114 natural block types: stone types and ores, soil and grass, sand and gravel, terracotta, snow and ice, nether and end terrain, leaves, dirt paths and farmland.
