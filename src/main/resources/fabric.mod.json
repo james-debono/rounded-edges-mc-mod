@@ -9,8 +9,8 @@
 	],
 	"contact": {
 		"homepage": "https://modrinth.com/mod/rounded-edges",
-		"sources": "https://github.com/james-debono/rounded-edges",
-		"issues": "https://github.com/james-debono/rounded-edges/issues"
+		"sources": "https://github.com/james-debono/rounded-edges-mc-mod",
+		"issues": "https://github.com/james-debono/rounded-edges-mc-mod/issues"
 	},
 	"license": "MIT",
 	"icon": "assets/rounded_edges/icon.png",
